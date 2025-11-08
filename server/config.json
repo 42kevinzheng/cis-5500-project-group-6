@@ -1,0 +1,9 @@
+{
+  "rds_host": "cis550group6.cleekk82kxqm.us-east-1.rds.amazonaws.com",
+  "rds_port": "5432",
+  "rds_user": "fall25group6",
+  "rds_password": "MSeattle7833Key",
+  "rds_db": "music_group6",
+  "server_host": "localhost",
+  "server_port": "8080"
+}
