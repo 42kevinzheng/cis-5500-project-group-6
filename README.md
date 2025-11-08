@@ -6,5 +6,5 @@ Although music streaming platforms provide access to millions of songs, they oft
 
 Our project addresses this gap by creating an interactive website that consolidates the Top 50 songs from multiple countries and genres. The platform allows users to explore and compare global music data to discover international artists and see how musical tastes vary worldwide. By centralizing and visualizing this information, our application makes it easier for users to understand global listening patterns and discover new music beyond their region.
 
-**Installation 
+**Installation**
 Download server folder and install using (npm i)
