@@ -63,7 +63,11 @@ const top50 = async function (req, res) {
                 JOIN song_artist sa ON s.song_id = sa.song_id
                 JOIN artist a ON sa.artist_id = a.artist_id
         WHERE ce.country_code = '${countryCode}'
-        AND ce.chart_date >= '2024-11-01'
+        AND ce.chart_date >= (
+            SELECT DATE_TRUNC('month', MAX(chart_date))
+            FROM chart_entry
+            WHERE country_code = '${countryCode}'
+        )
         GROUP BY s.song_id
         ORDER BY best_position ASC, most_recent_date DESC
         LIMIT 50;
@@ -98,9 +102,14 @@ const global50 = async function (req, res) {
         JOIN song s ON ce.song_id = s.song_id
         JOIN song_artist sa ON s.song_id = sa.song_id
         JOIN artist a ON sa.artist_id = a.artist_id
+        WHERE ce.chart_date >= (
+            SELECT DATE_TRUNC('month', MAX(chart_date))
+            FROM chart_entry
+        )
         GROUP BY s.song_id
         ORDER BY countries_charted DESC, best_position ASC
         LIMIT 50;
+
         `, (err, data) => {
         if (err) {
             console.error('Database error:', err);
@@ -432,6 +441,200 @@ const newSongs = async function (req, res) {
     });
 }
 
+// Route 13: GET /explicitDistribution
+const explicitDistribution = async function (req, res) {
+
+    connection.query(`
+        WITH latest_month AS (
+            SELECT DATE_TRUNC('month', MAX(chart_date)) AS start_month
+            FROM chart_entry
+        )
+        SELECT
+            c.country_name,
+            COUNT(*) FILTER (WHERE s.is_explicit = true) AS explicit_count,
+            COUNT(*) FILTER (WHERE s.is_explicit = false) AS clean_count,
+            ROUND(
+                COUNT(*) FILTER (WHERE s.is_explicit = true)::numeric 
+                / COUNT(*) * 100, 2
+            ) AS explicit_percentage
+        FROM chart_entry ce
+        JOIN latest_month lm ON ce.chart_date >= lm.start_month
+        JOIN song s ON ce.song_id = s.song_id
+        JOIN country c ON ce.country_code = c.country_code
+        GROUP BY c.country_name
+        ORDER BY explicit_percentage DESC;
+    `, (err, data) => {
+        if (err) {
+            console.error('Database error:', err);
+            return res.json({});
+        }
+        if (!data || data.rows.length === 0) {
+            return res.json({ message: 'No tables found.' });
+        }
+        res.json(data.rows);
+    });
+};
+
+// Route 14 : GET /filterSongs
+const filterSongs = async function (req, res) {
+
+    // sanitize empty strings → null
+    function cleanParam(v) {
+        return v === "" || v === undefined ? null : v;
+    }
+
+    const {
+        title,
+        artist,
+        duration_low,
+        duration_high,
+        explicit,
+        album_type,
+        min_tracks,
+        release_after,
+        release_before
+    } = req.query;
+
+    const params = [
+        cleanParam(title),
+        cleanParam(artist),
+        cleanParam(duration_low),
+        cleanParam(duration_high),
+        explicit === undefined ? null : explicit === "true",
+        cleanParam(album_type),
+        cleanParam(min_tracks),
+        cleanParam(release_after),
+        cleanParam(release_before)
+    ];
+
+
+    connection.query(`
+        SELECT 
+            s.song_id, 
+            s.song_name, 
+            STRING_AGG(DISTINCT a.artist_name, ', ') AS artists,
+            s.duration, 
+            s.is_explicit, 
+            s.album_type,
+            s.total_tracks,
+            s.release_date,
+            s.album_cover_url
+        FROM song s
+        JOIN song_artist sa ON s.song_id = sa.song_id
+        JOIN artist a ON sa.artist_id = a.artist_id
+        JOIN chart_entry ce ON s.song_id = ce.song_id
+        WHERE 1=1
+
+
+          AND ($1::text IS NULL OR s.song_name ILIKE '%' || $1 || '%')
+          AND ($2::text IS NULL OR a.artist_name ILIKE '%' || $2 || '%')
+          AND ($3::int IS NULL OR s.duration >= $3)
+          AND ($4::int IS NULL OR s.duration <= $4)
+          AND ($5::boolean IS NULL OR s.is_explicit = $5)
+          AND ($6::text IS NULL OR s.album_type = $6)
+          AND ($7::int IS NULL OR s.total_tracks >= $7)
+          AND ($8::date IS NULL OR s.release_date::date >= $8)
+          AND ($9::date IS NULL OR s.release_date::date <= $9)
+
+        GROUP BY 
+            s.song_id,
+            s.song_name,
+            s.duration,
+            s.is_explicit,
+            s.album_type,
+            s.total_tracks,
+            s.release_date,
+            s.album_cover_url
+
+        ORDER BY s.song_name ASC
+        LIMIT 200;
+    `, params, (err, data) => {
+
+        if (err) {
+            console.error('Database error:', err);
+            res.json({});
+        }
+        else if (!data || data.rows.length === 0) {
+            res.json({ message: 'No results found.' });
+        }
+        else {
+            res.json(data.rows);
+        }
+    });
+};
+
+// Route 15: GET /songDetails/:songID
+const songDetails = async function (req, res) {
+    const songID = req.params.songID;
+
+    connection.query(`
+        SELECT 
+            s.song_id,
+            s.song_name,
+            s.duration,
+            s.release_date,
+            s.album_type,
+            s.total_tracks,
+            s.is_explicit,
+            s.album_cover_url,
+            STRING_AGG(DISTINCT a.artist_name, ', ') AS artists
+        FROM song s
+        JOIN song_artist sa ON s.song_id = sa.song_id
+        JOIN artist a ON sa.artist_id = a.artist_id
+        WHERE s.song_id = $1
+        GROUP BY 
+            s.song_id, 
+            s.song_name, 
+            s.duration, 
+            s.release_date, 
+            s.album_type, 
+            s.total_tracks, 
+            s.is_explicit, 
+            s.album_cover_url;
+    `, [songID], (err, data) => {
+
+        if (err) {
+            console.error("Database error:", err);
+            return res.json({});
+        }
+
+        if (!data || data.rows.length === 0) {
+            return res.json({ message: "Song not found." });
+        }
+
+        res.json(data.rows[0]);
+    });
+};
+
+// Route 16: GET /artistDetails/:artistID
+const artistDetails = async function (req, res) {
+    const artistID = req.params.artistID;
+
+    connection.query(`
+        SELECT 
+            a.artist_id,
+            a.artist_name,
+            a.artist_genre,
+            c.country_name AS artist_country,
+            a.artist_img
+        FROM artist a
+        LEFT JOIN country c ON a.country_code = c.country_code
+        WHERE a.artist_id = $1;
+    `, [artistID], (err, data) => {
+
+        if (err) {
+            console.error("Database error:", err);
+            return res.json({});
+        }
+
+        if (!data || data.rows.length === 0) {
+            return res.json({ message: "Artist not found." });
+        }
+
+        res.json(data.rows[0]);
+    });
+};
+
 
 module.exports = {
   authors,
@@ -445,5 +648,9 @@ module.exports = {
   genreOverTime,
   songPosition,
   artistPosition,
-  newSongs
+  newSongs,
+  explicitDistribution,
+  filterSongs,
+  songDetails,
+  artistDetails
 }

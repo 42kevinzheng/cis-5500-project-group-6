@@ -21,6 +21,10 @@ app.get('/genreOverTime', routes.genreOverTime);
 app.get('/songPosition/:songID', routes.songPosition);
 app.get('/artistPosition', routes.artistPosition);
 app.get('/newSongs', routes.newSongs);
+app.get('/explicitDistribution', routes.explicitDistribution);
+app.get('/filterSongs', routes.filterSongs);
+app.get('/songDetails/:songID', routes.songDetails);
+app.get('/artistDetails/:artistID', routes.artistDetails);
 
 app.listen(config.server_port, () => {
   console.log(`Server running at http://${config.server_host}:${config.server_port}/`)
