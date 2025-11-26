@@ -56,7 +56,7 @@ const top50 = async function (req, res) {
         `SELECT
             MIN(s.song_name) AS song_name,
             STRING_AGG(DISTINCT a.artist_name, ', ') AS artists,
-            MIN(ce.chart_position) AS best_position,
+            MIN(ce.chart_position) AS rank,
             MAX(ce.chart_date) AS most_recent_date
         FROM chart_entry ce
                 JOIN song s ON ce.song_id = s.song_id
@@ -96,7 +96,7 @@ const global50 = async function (req, res) {
             MIN(s.song_name) AS song_name,
             STRING_AGG(DISTINCT a.artist_name, ', ') AS artists,
             COUNT(DISTINCT ce.country_code) AS countries_charted,
-            MIN(ce.chart_position) AS best_position,
+            MIN(ce.chart_position) AS rank,
             MAX(ce.chart_date) AS latest_date
         FROM chart_entry ce
         JOIN song s ON ce.song_id = s.song_id

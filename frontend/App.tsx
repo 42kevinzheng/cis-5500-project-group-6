@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Music, TrendingUp, Trophy, Disc3, Globe, User, LogOut } from "lucide-react";
+import { Music, TrendingUp, Trophy, Disc3, Globe } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select";
@@ -9,11 +9,10 @@ import { ArtistCard } from "./components/ArtistCard";
 import { AlbumCard } from "./components/AlbumCard";
 import { AuthDialog } from "./components/AuthDialog";
 import { UserProfile } from "./components/UserProfile";
-import { UserProvider, useUser } from "./contexts/UserContext";
+import { UserProvider } from "./contexts/UserContext";
 import { chartData, countries, Country } from "./data/chartData";
 
 function AppContent() {
-  const { user, logout } = useUser();
   const [selectedCountry, setSelectedCountry] = useState<Country>("worldwide");
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -31,7 +30,7 @@ function AppContent() {
                 <Music className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-purple-900">MusicCharts</h1>
+                <h1 className="text-purple-900">MuCharts</h1>
                 <p className="text-sm text-gray-600">Your daily dose of trending music</p>
               </div>
             </div>
@@ -56,27 +55,6 @@ function AppContent() {
                     </SelectContent>
                   </Select>
                 </>
-              )}
-
-              {user ? (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={showProfile ? "default" : "outline"}
-                    onClick={() => setShowProfile(!showProfile)}
-                    className="gap-2"
-                  >
-                    <User className="w-4 h-4" />
-                    {user.username}
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={logout} title="Logout">
-                    <LogOut className="w-4 h-4" />
-                  </Button>
-                </div>
-              ) : (
-                <Button onClick={() => setAuthDialogOpen(true)} className="gap-2">
-                  <User className="w-4 h-4" />
-                  Login
-                </Button>
               )}
             </div>
           </div>
@@ -103,7 +81,6 @@ function AppContent() {
                   {currentCountryInfo?.flag} {currentCountryInfo?.label} Charts
                 </h2>
               </div>
-              <p className="text-gray-600">Updated October 15, 2025</p>
             </div>
 
             <Tabs defaultValue="songs" className="space-y-6">
