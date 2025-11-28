@@ -1,22 +1,20 @@
 import { useState } from "react";
-import { Music, TrendingUp, Trophy, Disc3, Globe } from "lucide-react";
+import { Music, TrendingUp, Trophy, Globe } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select";
-import { Button } from "./components/ui/button";
 import { ChartItem } from "./components/ChartItem";
 import { ArtistCard } from "./components/ArtistCard";
 import { AuthDialog } from "./components/AuthDialog";
-import { UserProfile } from "./components/UserProfile";
 import { UserProvider } from "./contexts/UserContext";
-import { chartData, countries, Country } from "./data/chartData";
+import { mockData, countries, Country } from "./data/chartData";
 
 function AppContent() {
   const [selectedCountry, setSelectedCountry] = useState<Country>("worldwide");
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   
-  const currentData = chartData[selectedCountry];
+  const currentData = mockData[selectedCountry];
   const currentCountryInfo = countries.find(c => c.value === selectedCountry);
 
   return (
@@ -61,18 +59,7 @@ function AppContent() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {showProfile ? (
-          <>
-            <div className="mb-8">
-              <Button variant="ghost" onClick={() => setShowProfile(false)} className="mb-4">
-                ← Back to Charts
-              </Button>
-              <h2 className="text-purple-900">My Profile</h2>
-            </div>
-            <UserProfile />
-          </>
-        ) : (
-          <>
+        <>
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-6 h-6 text-purple-600" />
@@ -123,7 +110,6 @@ function AppContent() {
               </TabsContent>
             </Tabs>
           </>
-        )}
       </main>
 
       <footer className="bg-white border-t mt-16">

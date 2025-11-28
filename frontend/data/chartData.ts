@@ -1,6 +1,5 @@
 import { ChartItemData } from "../components/ChartItem";
 import { ArtistData } from "../components/ArtistCard";
-import { AlbumData } from "../components/AlbumCard";
 //import { axios } from "axios";
 
 export type Country = "worldwide" | "us" | "spain" | "uk" | "italy" | "france" | "mexico" | "argentina" | "japan" | "south-korea";
@@ -31,7 +30,7 @@ export interface chartData {
 }
 
 
-export const chartData: Record<Country, chartData> = {
+export const mockData: Record<Country, chartData> = {
   worldwide: {
     songs: [
       { rank: 1, title: "Starlight Dreams", artist: "Luna Echo", image_url: img1, countries_charted: 45, latest_date: "2025-11-27" },

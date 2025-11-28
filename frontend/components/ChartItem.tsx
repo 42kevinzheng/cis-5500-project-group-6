@@ -1,4 +1,4 @@
-import { Play, TrendingUp, TrendingDown, Minus, Heart } from "lucide-react";
+import { Play, Heart } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { ImageWithFallback } from "./figma/ImageWithFallback";

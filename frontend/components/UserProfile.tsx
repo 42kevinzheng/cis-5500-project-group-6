@@ -2,7 +2,7 @@ import { useUser } from '../contexts/UserContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Heart, Music, User as UserIcon, Disc3 } from 'lucide-react';
-import { chartData } from '../data/chartData';
+import { mockData } from '../data/chartData';
 
 export function UserProfile() {
   const { user, likedItems, toggleLike } = useUser();
@@ -14,7 +14,7 @@ export function UserProfile() {
   // Get all liked items across all countries
   const getLikedSongs = () => {
     const songs: any[] = [];
-    Object.values(chartData).forEach((countryData) => {
+    Object.values(mockData).forEach((countryData) => {
       countryData.songs.forEach((song) => {
         const songId = `${song.title}-${song.artist}`;
         if (likedItems.songs.has(songId)) {
@@ -28,7 +28,7 @@ export function UserProfile() {
 
   const getLikedArtists = () => {
     const artists: any[] = [];
-    Object.values(chartData).forEach((countryData) => {
+    Object.values(mockData).forEach((countryData) => {
       countryData.artists.forEach((artist) => {
         if (likedItems.artists.has(artist.name) && !artists.some(a => a.name === artist.name)) {
           artists.push(artist);
@@ -40,7 +40,7 @@ export function UserProfile() {
 
   const getLikedAlbums = () => {
     const albums: any[] = [];
-    Object.values(chartData).forEach((countryData) => {
+    Object.values(mockData).forEach((countryData) => {
       countryData.albums.forEach((album) => {
         const albumId = `${album.title}-${album.artist}`;
         if (likedItems.albums.has(albumId)) {
