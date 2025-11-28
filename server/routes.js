@@ -56,8 +56,9 @@ const top50 = async function (req, res) {
         `SELECT
             MIN(s.song_name) AS song_name,
             STRING_AGG(DISTINCT a.artist_name, ', ') AS artists,
-            MIN(ce.chart_position) AS rank,
+            MIN(ce.chart_position) AS best_position,
             MAX(ce.chart_date) AS most_recent_date
+            MIN(s.album_cover_url) AS image_url
         FROM chart_entry ce
                 JOIN song s ON ce.song_id = s.song_id
                 JOIN song_artist sa ON s.song_id = sa.song_id
@@ -93,11 +94,12 @@ const global50 = async function (req, res) {
 
     connection.query(`
         SELECT
-            MIN(s.song_name) AS song_name,
-            STRING_AGG(DISTINCT a.artist_name, ', ') AS artists,
+            MIN(s.song_name) AS title,
+            STRING_AGG(DISTINCT a.artist_name, ', ') AS artist,
             COUNT(DISTINCT ce.country_code) AS countries_charted,
             MIN(ce.chart_position) AS rank,
-            MAX(ce.chart_date) AS latest_date
+            MAX(ce.chart_date) AS latest_date,
+            MIN(s.album_cover_url) AS image_url
         FROM chart_entry ce
         JOIN song s ON ce.song_id = s.song_id
         JOIN song_artist sa ON s.song_id = sa.song_id
@@ -107,7 +109,7 @@ const global50 = async function (req, res) {
             FROM chart_entry
         )
         GROUP BY s.song_id
-        ORDER BY countries_charted DESC, best_position ASC
+        ORDER BY countries_charted DESC, rank ASC
         LIMIT 50;
 
         `, (err, data) => {
@@ -132,13 +134,13 @@ const topArtists = async function (req, res) {
 
     connection.query(`
             SELECT
-                a.artist_id,
-                a.artist_name,
-                STRING_AGG(DISTINCT a.artist_genre, ', ') AS artist_genres,
+                a.artist_name as name,
+                STRING_AGG(DISTINCT a.artist_genre, ', ') AS genre,
                 COUNT(DISTINCT s.song_id) AS total_charting_songs,
                 ROUND(AVG(ce.chart_position), 2) AS avg_chart_position,
                 COUNT(DISTINCT ce.country_code) AS countries_charted,
-                MIN(ce.chart_position) AS best_position
+                MIN(ce.chart_position) AS best_position,
+                MIN(a.artist_img) AS image_url
             FROM artist a
             JOIN song_artist sa ON a.artist_id = sa.artist_id
             JOIN song s ON sa.song_id = s.song_id

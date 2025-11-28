@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Button } from "./components/ui/button";
 import { ChartItem } from "./components/ChartItem";
 import { ArtistCard } from "./components/ArtistCard";
-import { AlbumCard } from "./components/AlbumCard";
 import { AuthDialog } from "./components/AuthDialog";
 import { UserProfile } from "./components/UserProfile";
 import { UserProvider } from "./contexts/UserContext";
@@ -84,7 +83,7 @@ function AppContent() {
             </div>
 
             <Tabs defaultValue="songs" className="space-y-6">
-              <TabsList className="grid w-full max-w-md grid-cols-3">
+              <TabsList className="grid w-full max-w-md grid-cols-2">
                 <TabsTrigger value="songs">
                   <Trophy className="w-4 h-4 mr-2" />
                   Songs
@@ -92,10 +91,6 @@ function AppContent() {
                 <TabsTrigger value="artists">
                   <Music className="w-4 h-4 mr-2" />
                   Artists
-                </TabsTrigger>
-                <TabsTrigger value="albums">
-                  <Disc3 className="w-4 h-4 mr-2" />
-                  Albums
                 </TabsTrigger>
               </TabsList>
 
@@ -123,18 +118,6 @@ function AppContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {currentData.artists.map((artist, index) => (
                     <ArtistCard key={artist.name} artist={artist} rank={index + 1} />
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="albums" className="space-y-4">
-                <div className="mb-4">
-                  <h3>Top Albums This Week</h3>
-                  <p className="text-gray-600">Best-performing albums in {currentCountryInfo?.label}</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {currentData.albums.map((album, index) => (
-                    <AlbumCard key={album.title} album={album} rank={index + 1} />
                   ))}
                 </div>
               </TabsContent>

@@ -8,8 +8,9 @@ export interface ChartItemData {
   rank: number;
   title: string;
   artist: string;
-  imageUrl: string;
-  //peakPosition: number;
+  image_url: string;
+  countries_charted: number;
+  latest_date: string;
 }
 
 interface ChartItemProps {
@@ -31,7 +32,7 @@ export function ChartItem({ item }: ChartItemProps) {
 
       <div className="relative w-16 h-16 flex-shrink-0">
         <ImageWithFallback
-          src={item.imageUrl}
+          src={item.image_url}
           alt={item.title}
           className="w-full h-full object-cover rounded-md"
         />

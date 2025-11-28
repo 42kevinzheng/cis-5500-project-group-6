@@ -7,9 +7,11 @@ import { useUser } from "../contexts/UserContext";
 
 export interface ArtistData {
   name: string;
-  imageUrl: string;
-  monthlyListeners: string;
-  topSong: string;
+  image_url: string;
+  total_charting_songs: string;
+  avg_chart_position: string;
+  best_position: string;
+  countries_charted: string;
   genre: string;
 }
 
@@ -26,7 +28,7 @@ export function ArtistCard({ artist, rank }: ArtistCardProps) {
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <div className="relative h-48">
         <ImageWithFallback
-          src={artist.imageUrl}
+          src={artist.image_url}
           alt={artist.name}
           className="w-full h-full object-cover"
         />
@@ -52,11 +54,11 @@ export function ArtistCard({ artist, rank }: ArtistCardProps) {
         <div className="space-y-2 text-sm text-gray-600">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4" />
-            <span>{artist.monthlyListeners} monthly listeners</span>
+            <span>{artist.total_charting_songs} Total Charting Songs</span>
           </div>
           <div className="flex items-center gap-2">
             <Music2 className="w-4 h-4" />
-            <span className="truncate">{artist.topSong}</span>
+            <span className="truncate">Best Position: #{artist.best_position}</span>
           </div>
           <Badge variant="outline" className="mt-2">
             {artist.genre}
