@@ -115,7 +115,7 @@ function AppContent() {
       <footer className="bg-white border-t mt-16">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center text-gray-600">
-            <p>&copy; 2025 MusicCharts. All rights reserved.</p>
+            <p>&copy; 2025 MuCharts. All rights reserved.</p>
             <p className="text-sm mt-2">Chart data updated weekly</p>
           </div>
         </div>
