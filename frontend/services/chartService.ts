@@ -1,7 +1,7 @@
 import axios from "axios";
 import type { Country, chartData } from "../data/chartData";
 
-const API_BASE = "https://localhost:8080"; // Replace with real URL
+const API_BASE = "http://localhost:8080"; // Replace with real URL
 
 // Fetch songs + artists together for a country
 export const fetchTop50 = async (country: Country = "worldwide"): Promise<chartData> => {
