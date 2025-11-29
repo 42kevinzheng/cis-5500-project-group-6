@@ -1,25 +1,56 @@
-import { useState } from "react";
-import { Music, TrendingUp, Trophy, Disc3, Globe, User, LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Music, TrendingUp, Trophy, Globe } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select";
-import { Button } from "./components/ui/button";
 import { ChartItem } from "./components/ChartItem";
 import { ArtistCard } from "./components/ArtistCard";
-import { AlbumCard } from "./components/AlbumCard";
 import { AuthDialog } from "./components/AuthDialog";
-import { UserProfile } from "./components/UserProfile";
-import { UserProvider, useUser } from "./contexts/UserContext";
-import { chartData, countries, Country } from "./data/chartData";
+import { UserProvider } from "./contexts/UserContext";
+import { countries, Country, chartData } from "./data/chartData"; // Keep for types and countries list
+import { fetchTop50, fetchWorldwideCharts } from "./services/chartService"; // Import fetch functions (adjust path if needed)
 
 function AppContent() {
-  const { user, logout } = useUser();
   const [selectedCountry, setSelectedCountry] = useState<Country>("worldwide");
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [currentData, setCurrentData] = useState<chartData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  const currentData = chartData[selectedCountry];
   const currentCountryInfo = countries.find(c => c.value === selectedCountry);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        let data: chartData;
+        if (selectedCountry === "worldwide") {
+          console.log("fetching worldwide")
+          data = await fetchWorldwideCharts();
+        } else {
+          data = await fetchTop50(selectedCountry);
+        }
+        setCurrentData(data);
+
+      } catch (err) {
+        setError("Failed to fetch chart data. Please try again later.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [selectedCountry]);
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading charts...</div>;
+  }
+
+  if (error || !currentData) {
+    return <div className="min-h-screen flex items-center justify-center text-red-600">{error || "No data available"}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
@@ -31,7 +62,7 @@ function AppContent() {
                 <Music className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-purple-900">MusicCharts</h1>
+                <h1 className="text-purple-900">MuCharts</h1>
                 <p className="text-sm text-gray-600">Your daily dose of trending music</p>
               </div>
             </div>
@@ -57,119 +88,67 @@ function AppContent() {
                   </Select>
                 </>
               )}
-
-              {user ? (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={showProfile ? "default" : "outline"}
-                    onClick={() => setShowProfile(!showProfile)}
-                    className="gap-2"
-                  >
-                    <User className="w-4 h-4" />
-                    {user.username}
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={logout} title="Logout">
-                    <LogOut className="w-4 h-4" />
-                  </Button>
-                </div>
-              ) : (
-                <Button onClick={() => setAuthDialogOpen(true)} className="gap-2">
-                  <User className="w-4 h-4" />
-                  Login
-                </Button>
-              )}
             </div>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {showProfile ? (
-          <>
-            <div className="mb-8">
-              <Button variant="ghost" onClick={() => setShowProfile(false)} className="mb-4">
-                ← Back to Charts
-              </Button>
-              <h2 className="text-purple-900">My Profile</h2>
-            </div>
-            <UserProfile />
-          </>
-        ) : (
-          <>
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
-                <h2 className="text-purple-900">
-                  {currentCountryInfo?.flag} {currentCountryInfo?.label} Charts
-                </h2>
-              </div>
-              <p className="text-gray-600">Updated October 15, 2025</p>
-            </div>
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-6 h-6 text-purple-600" />
+            <h2 className="text-purple-900">
+              {currentCountryInfo?.flag} {currentCountryInfo?.label} Charts
+            </h2>
+          </div>
+        </div>
 
-            <Tabs defaultValue="songs" className="space-y-6">
-              <TabsList className="grid w-full max-w-md grid-cols-3">
-                <TabsTrigger value="songs">
-                  <Trophy className="w-4 h-4 mr-2" />
-                  Songs
-                </TabsTrigger>
-                <TabsTrigger value="artists">
-                  <Music className="w-4 h-4 mr-2" />
-                  Artists
-                </TabsTrigger>
-                <TabsTrigger value="albums">
-                  <Disc3 className="w-4 h-4 mr-2" />
-                  Albums
-                </TabsTrigger>
-              </TabsList>
+        <Tabs defaultValue="songs" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="songs">
+              <Trophy className="w-4 h-4 mr-2" />
+              Songs
+            </TabsTrigger>
+            <TabsTrigger value="artists">
+              <Music className="w-4 h-4 mr-2" />
+              Artists
+            </TabsTrigger>
+          </TabsList>
 
-              <TabsContent value="songs" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Top 10 Songs</CardTitle>
-                    <CardDescription>The hottest tracks in {currentCountryInfo?.label}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="divide-y">
-                      {currentData.songs.map((song) => (
-                        <ChartItem key={song.rank} item={song} />
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="artists" className="space-y-4">
-                <div className="mb-4">
-                  <h3>Top Artists This Week</h3>
-                  <p className="text-gray-600">Most streamed artists in {currentCountryInfo?.label}</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {currentData.artists.map((artist, index) => (
-                    <ArtistCard key={artist.name} artist={artist} rank={index + 1} />
+          <TabsContent value="songs" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Top 10 Songs</CardTitle>
+                <CardDescription>The hottest tracks in {currentCountryInfo?.label}</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {currentData.songs.map((song) => (
+                    <ChartItem key={song.rank} item={song} />
                   ))}
                 </div>
-              </TabsContent>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-              <TabsContent value="albums" className="space-y-4">
-                <div className="mb-4">
-                  <h3>Top Albums This Week</h3>
-                  <p className="text-gray-600">Best-performing albums in {currentCountryInfo?.label}</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {currentData.albums.map((album, index) => (
-                    <AlbumCard key={album.title} album={album} rank={index + 1} />
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </>
-        )}
+          <TabsContent value="artists" className="space-y-4">
+            <div className="mb-4">
+              <h3>Top Artists This Week</h3>
+              <p className="text-gray-600">Most streamed artists in {currentCountryInfo?.label}</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {currentData.artists.map((artist, index) => (
+                <ArtistCard key={artist.name} artist={artist} rank={index + 1} />
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
 
       <footer className="bg-white border-t mt-16">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center text-gray-600">
-            <p>&copy; 2025 MusicCharts. All rights reserved.</p>
+            <p>&copy; 2025 MuCharts. All rights reserved.</p>
             <p className="text-sm mt-2">Chart data updated weekly</p>
           </div>
         </div>

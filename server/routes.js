@@ -53,24 +53,36 @@ const top50 = async function (req, res) {
     const countryCode = req.params.code.toUpperCase();
 
     connection.query( 
-        `SELECT
-            MIN(s.song_name) AS song_name,
-            STRING_AGG(DISTINCT a.artist_name, ', ') AS artists,
-            MIN(ce.chart_position) AS best_position,
-            MAX(ce.chart_date) AS most_recent_date
-        FROM chart_entry ce
-                JOIN song s ON ce.song_id = s.song_id
-                JOIN song_artist sa ON s.song_id = sa.song_id
-                JOIN artist a ON sa.artist_id = a.artist_id
-        WHERE ce.country_code = '${countryCode}'
-        AND ce.chart_date >= (
-            SELECT DATE_TRUNC('month', MAX(chart_date))
-            FROM chart_entry
-            WHERE country_code = '${countryCode}'
+        `
+        WITH ranked AS (
+            SELECT
+                s.song_id,
+                MIN(s.song_name) AS song_name,
+                STRING_AGG(DISTINCT a.artist_name, ', ') AS artists,
+                MIN(ce.chart_position) AS best_position,
+                MAX(ce.chart_date) AS most_recent_date,
+                MIN(s.album_cover_url) AS image_url,
+                ROW_NUMBER() OVER (
+                    ORDER BY MIN(ce.chart_position) ASC,
+                             MAX(ce.chart_date) DESC,
+                             s.song_id
+                ) AS rank
+            FROM chart_entry ce
+            JOIN song s ON ce.song_id = s.song_id
+            JOIN song_artist sa ON s.song_id = sa.song_id
+            JOIN artist a ON sa.artist_id = a.artist_id
+            WHERE ce.country_code = $1
+              AND ce.chart_date >= (
+                    SELECT DATE_TRUNC('month', MAX(chart_date))
+                    FROM chart_entry
+                    WHERE country_code = $1
+                )
+            GROUP BY s.song_id
         )
-        GROUP BY s.song_id
-        ORDER BY best_position ASC, most_recent_date DESC
-        LIMIT 50;
+        SELECT *
+        FROM ranked
+        WHERE rank <= 50
+        ORDER BY rank;
         `, (err, data) => {
         if (err) {
             console.error('Database error:', err);
@@ -92,23 +104,37 @@ const top50 = async function (req, res) {
 const global50 = async function (req, res) {
 
     connection.query(`
-        SELECT
-            MIN(s.song_name) AS song_name,
-            STRING_AGG(DISTINCT a.artist_name, ', ') AS artists,
-            COUNT(DISTINCT ce.country_code) AS countries_charted,
-            MIN(ce.chart_position) AS best_position,
-            MAX(ce.chart_date) AS latest_date
-        FROM chart_entry ce
-        JOIN song s ON ce.song_id = s.song_id
-        JOIN song_artist sa ON s.song_id = sa.song_id
-        JOIN artist a ON sa.artist_id = a.artist_id
-        WHERE ce.chart_date >= (
-            SELECT DATE_TRUNC('month', MAX(chart_date))
-            FROM chart_entry
+        WITH ranked AS (
+            SELECT
+                s.song_id,
+                MIN(s.song_name) AS title,
+                STRING_AGG(DISTINCT a.artist_name, ', ') AS artist,
+                COUNT(DISTINCT ce.country_code) AS countries_charted,
+                MIN(ce.chart_position) AS best_position,
+                MAX(ce.chart_date) AS latest_date,
+                MIN(s.album_cover_url) AS image_url,
+
+                ROW_NUMBER() OVER (
+                    ORDER BY 
+                        COUNT(DISTINCT ce.country_code) DESC,
+                        MIN(ce.chart_position) ASC,
+                        MAX(ce.chart_date) DESC,
+                        s.song_id
+                ) AS rank
+            FROM chart_entry ce
+            JOIN song s ON ce.song_id = s.song_id
+            JOIN song_artist sa ON s.song_id = sa.song_id
+            JOIN artist a ON sa.artist_id = a.artist_id
+            WHERE ce.chart_date >= (
+                SELECT DATE_TRUNC('month', MAX(chart_date))
+                FROM chart_entry
+            )
+            GROUP BY s.song_id
         )
-        GROUP BY s.song_id
-        ORDER BY countries_charted DESC, best_position ASC
-        LIMIT 50;
+        SELECT *
+        FROM ranked
+        WHERE rank <= 50
+        ORDER BY rank;
 
         `, (err, data) => {
         if (err) {
@@ -132,13 +158,13 @@ const topArtists = async function (req, res) {
 
     connection.query(`
             SELECT
-                a.artist_id,
-                a.artist_name,
-                STRING_AGG(DISTINCT a.artist_genre, ', ') AS artist_genres,
+                a.artist_name as name,
+                STRING_AGG(DISTINCT a.artist_genre, ', ') AS genre,
                 COUNT(DISTINCT s.song_id) AS total_charting_songs,
                 ROUND(AVG(ce.chart_position), 2) AS avg_chart_position,
                 COUNT(DISTINCT ce.country_code) AS countries_charted,
-                MIN(ce.chart_position) AS best_position
+                MIN(ce.chart_position) AS best_position,
+                MIN(a.artist_img) AS image_url
             FROM artist a
             JOIN song_artist sa ON a.artist_id = sa.artist_id
             JOIN song s ON sa.song_id = s.song_id
@@ -273,44 +299,37 @@ const songDuration = async function (req, res) {
 
 // Route 9 : GET /genreOverTime
 const genreOverTime = async function (req, res) {
+    const start = req.query.start || '2023-01-01'; //default
+    const end = req.query.end || '2024-12-31'; //default
 
     connection.query(`
-        WITH monthly_stats AS (
-            SELECT 
-                DATE_TRUNC('month', ce.chart_date) AS month,
-                a.artist_genre,
-                ROUND(AVG(ce.chart_position), 2) AS avg_position,
-                COUNT(DISTINCT s.song_id) AS songs_charted
+        WITH top_genres AS (
+            SELECT a.artist_genre, COUNT(DISTINCT s.song_id) as total_songs
             FROM chart_entry ce
             JOIN song s ON ce.song_id = s.song_id
             JOIN song_artist sa ON s.song_id = sa.song_id
             JOIN artist a ON sa.artist_id = a.artist_id
-            WHERE ce.chart_date >= '2023-11-01'
-            GROUP BY DATE_TRUNC('month', ce.chart_date), a.artist_genre
-            HAVING COUNT(DISTINCT s.song_id) >= 5
-        ),
-        latest_vs_oldest AS (
-            SELECT 
-                artist_genre,
-                MAX(CASE WHEN month = '2024-11-01' THEN avg_position END) AS nov_2024_position,
-                MAX(CASE WHEN month = '2023-11-01' THEN avg_position END) AS nov_2023_position,
-                MAX(CASE WHEN month = '2024-11-01' THEN songs_charted END) AS nov_2024_songs,
-                MAX(CASE WHEN month = '2023-11-01' THEN songs_charted END) AS nov_2023_songs
-            FROM monthly_stats
-            GROUP BY artist_genre
+            WHERE ce.chart_date >= $1 AND ce.chart_date <= $2
+            GROUP BY a.artist_genre
+            ORDER BY total_songs DESC
+            LIMIT 5
         )
         SELECT 
-            artist_genre,
-            nov_2023_position,
-            nov_2024_position,
-            ROUND(nov_2023_position - nov_2024_position, 2) AS position_improvement,
-            nov_2023_songs,
-            nov_2024_songs,
-            nov_2024_songs - nov_2023_songs AS song_growth
-        FROM latest_vs_oldest
-        WHERE nov_2023_position IS NOT NULL AND nov_2024_position IS NOT NULL
-        ORDER BY position_improvement DESC;
-        `, (err, data) => {
+            a.artist_genre,
+            DATE_TRUNC('month', ce.chart_date) AS month,
+            ROUND(AVG(ce.chart_position), 2) AS avg_position,
+            COUNT(DISTINCT s.song_id) AS songs_charted
+        FROM chart_entry ce
+        JOIN song s ON ce.song_id = s.song_id
+        JOIN song_artist sa ON s.song_id = sa.song_id
+        JOIN artist a ON sa.artist_id = a.artist_id
+        WHERE ce.chart_date >= $1
+          AND ce.chart_date <= $2
+          AND a.artist_genre IN (SELECT artist_genre FROM top_genres)
+        GROUP BY a.artist_genre, DATE_TRUNC('month', ce.chart_date)
+        HAVING COUNT(DISTINCT s.song_id) >= 5
+        ORDER BY a.artist_genre, month;
+    `, [start, end], (err, data) => {
         if (err) {
             console.error('Database error:', err);
             res.json({});
@@ -635,6 +654,45 @@ const artistDetails = async function (req, res) {
     });
 };
 
+// Route: GET /topArtistsByCountry/:code
+const topArtistsByCountry = async function (req, res) {
+    const countryCode = req.params.code.toUpperCase();
+
+    connection.query(`
+        WITH latest_date AS (
+            SELECT MAX(chart_date) AS date
+            FROM chart_entry
+            WHERE country_code = $1
+        )
+        SELECT
+            a.artist_name AS name,
+            STRING_AGG(DISTINCT a.artist_genre, ', ') AS genre,
+            COUNT(DISTINCT s.song_id) AS total_charting_songs,
+            ROUND(AVG(ce.chart_position), 2) AS avg_chart_position,
+            MIN(ce.chart_position) AS best_position,
+            MIN(a.artist_img) AS image_url
+        FROM artist a
+        JOIN song_artist sa ON a.artist_id = sa.artist_id
+        JOIN song s ON sa.song_id = s.song_id
+        JOIN chart_entry ce ON s.song_id = ce.song_id
+        JOIN latest_date ld ON ce.chart_date = ld.date
+        WHERE ce.country_code = $1
+        GROUP BY a.artist_id, a.artist_name
+        ORDER BY avg_chart_position ASC, total_charting_songs DESC
+        LIMIT 50;
+    `, [countryCode], (err, data) => {
+        if (err) {
+            console.error('Database error:', err);
+            res.json({});
+        } else if (!data || data.rows.length === 0) {
+            res.json({ message: 'No data found.' });
+        } else {
+            res.json(data.rows);
+        }
+    });
+};
+
+
 
 module.exports = {
   authors,
@@ -652,5 +710,6 @@ module.exports = {
   explicitDistribution,
   filterSongs,
   songDetails,
-  artistDetails
+  artistDetails,
+  topArtistsByCountry
 }

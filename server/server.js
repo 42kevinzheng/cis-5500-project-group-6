@@ -25,6 +25,7 @@ app.get('/explicitDistribution', routes.explicitDistribution);
 app.get('/filterSongs', routes.filterSongs);
 app.get('/songDetails/:songID', routes.songDetails);
 app.get('/artistDetails/:artistID', routes.artistDetails);
+app.get('/topArtistsByCountry/:code', routes.topArtistsByCountry);
 
 app.listen(config.server_port, () => {
   console.log(`Server running at http://${config.server_host}:${config.server_port}/`)
