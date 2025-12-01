@@ -194,19 +194,66 @@ const topArtists = async function (req, res) {
 const topGenres = async function (req, res) {
 
     connection.query(`
+    WITH all_entries AS (
         SELECT
+            ce.chart_date,
+            ce.chart_position,
+            ce.country_code,
+            s.song_id,
+            s.is_explicit,
             a.artist_genre,
-            COUNT(DISTINCT s.song_id) AS songs_in_chart,
-            ROUND(AVG(ce.chart_position), 2) AS avg_position
+            c.country_name
         FROM chart_entry ce
-        JOIN song s ON ce.song_id = s.song_id
-        JOIN song_artist sa ON s.song_id = sa.song_id
-        JOIN artist a ON sa.artist_id = a.artist_id
-        WHERE ce.chart_date = (SELECT MAX(chart_date) FROM chart_entry)
-            AND a.artist_genre IS NOT NULL
-        GROUP BY a.artist_genre
-        ORDER BY songs_in_chart DESC
-        LIMIT 50;
+        JOIN song s
+          ON ce.song_id = s.song_id
+        JOIN song_artist sa
+          ON s.song_id = sa.song_id
+        JOIN artist a
+          ON sa.artist_id = a.artist_id
+        JOIN country c
+          ON ce.country_code = c.country_code
+        WHERE ce.chart_position <= 100
+          AND a.artist_genre IS NOT NULL
+    ),
+    genre_country AS (
+        SELECT
+            artist_genre,
+            country_name,
+            COUNT(DISTINCT song_id)                 AS songs_in_chart,
+            ROUND(AVG(chart_position), 2)           AS avg_position,
+            COUNT(*) FILTER (WHERE is_explicit)     AS explicit_count,
+            COUNT(*) FILTER (WHERE NOT is_explicit) AS clean_count
+        FROM all_entries
+        GROUP BY artist_genre, country_name
+    ),
+    genre_global AS (
+        SELECT
+            artist_genre,
+            SUM(songs_in_chart)                     AS total_songs_in_chart,
+            ROUND(AVG(avg_position), 2)             AS avg_position_across_countries,
+            SUM(explicit_count)                     AS explicit_count,
+            SUM(clean_count)                        AS clean_count,
+            COUNT(DISTINCT country_name)            AS countries_appearing
+        FROM genre_country
+        GROUP BY artist_genre
+    )
+    SELECT
+        artist_genre,
+        total_songs_in_chart,
+        avg_position_across_countries,
+        explicit_count,
+        clean_count,
+        countries_appearing,
+        ROUND(
+            CASE 
+                WHEN explicit_count + clean_count = 0 THEN 0
+                ELSE 100.0 * explicit_count / (explicit_count + clean_count)
+            END,
+            2
+        ) AS explicit_percentage
+    FROM genre_global
+    ORDER BY total_songs_in_chart DESC, avg_position_across_countries ASC
+    LIMIT 50;
         `, (err, data) => {
         if (err) {
             console.error('Database error:', err);
@@ -422,28 +469,85 @@ const artistPosition = async function (req, res) {
 const newSongs = async function (req, res) {
 
     connection.query(`
-        SELECT
-            c.country_name,
-            MIN(s.song_name) AS song_name,
-            STRING_AGG(DISTINCT a.artist_name, ', ') AS artists,
-            ce.chart_position,
-            ce.chart_date AS entry_date
-        FROM chart_entry ce
-                JOIN song s ON ce.song_id = s.song_id
-                JOIN song_artist sa ON s.song_id = sa.song_id
-                JOIN artist a ON sa.artist_id = a.artist_id
-                JOIN country c ON ce.country_code = c.country_code
-        WHERE ce.chart_date = (SELECT MAX(chart_date) FROM chart_entry)
-        AND ce.chart_position <= 50
-        AND NOT EXISTS (
-            SELECT 1
-            FROM chart_entry ce2
-            WHERE ce2.song_id = ce.song_id
-            AND ce2.country_code = ce.country_code
-            AND ce2.chart_date < ce.chart_date
+        WITH latest_by_country AS (
+            SELECT 
+                country_code,
+                MAX(chart_date) AS latest_date
+            FROM chart_entry
+            GROUP BY country_code
+        ),
+        latest_entries AS (
+            SELECT
+                ce.country_code,
+                ce.song_id,
+                ce.chart_position,
+                ce.chart_date,
+                s.song_name,
+                s.is_explicit,
+                c.country_name
+            FROM chart_entry ce
+            JOIN latest_by_country l
+              ON ce.country_code = l.country_code
+             AND ce.chart_date  = l.latest_date
+            JOIN song s
+              ON ce.song_id = s.song_id
+            JOIN country c
+              ON ce.country_code = c.country_code
+            WHERE ce.chart_position <= 100
+        ),
+        new_songs AS (
+            SELECT
+                le.country_code,
+                le.country_name,
+                le.song_id,
+                le.song_name,
+                le.chart_position,
+                le.chart_date,
+                le.is_explicit
+            FROM latest_entries le
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM chart_entry ce2
+                WHERE ce2.song_id      = le.song_id
+                  AND ce2.country_code = le.country_code
+                  AND ce2.chart_date   < le.chart_date
+            )
+        ),
+        new_songs_with_artists AS (
+            SELECT
+                n.country_code,
+                n.country_name,
+                n.song_id,
+                n.song_name,
+                n.chart_position,
+                n.chart_date,
+                n.is_explicit,
+                STRING_AGG(DISTINCT a.artist_name, ', ')  AS artists,
+                STRING_AGG(DISTINCT a.artist_genre, ', ') AS genres
+            FROM new_songs n
+            JOIN song_artist sa ON n.song_id = sa.song_id
+            JOIN artist a       ON sa.artist_id = a.artist_id
+            GROUP BY
+                n.country_code,
+                n.country_name,
+                n.song_id,
+                n.song_name,
+                n.chart_position,
+                n.chart_date,
+                n.is_explicit
         )
-        GROUP BY c.country_name, s.song_id, ce.chart_position, ce.chart_date
-        ORDER BY ce.chart_position ASC, c.country_name
+        SELECT
+            country_code,
+            country_name,
+            song_id,
+            song_name,
+            artists,
+            genres,
+            chart_position,
+            chart_date,
+            is_explicit
+        FROM new_songs_with_artists
+        ORDER BY chart_position ASC, country_name, song_name
         LIMIT 50;
         `, (err, data) => {
         if (err) {
