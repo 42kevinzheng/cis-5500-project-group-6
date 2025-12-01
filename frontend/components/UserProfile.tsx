@@ -38,23 +38,8 @@ export function UserProfile() {
     return artists;
   };
 
-  const getLikedAlbums = () => {
-    const albums: any[] = [];
-    Object.values(mockData).forEach((countryData) => {
-      countryData.albums.forEach((album) => {
-        const albumId = `${album.title}-${album.artist}`;
-        if (likedItems.albums.has(albumId)) {
-          albums.push(album);
-        }
-      });
-    });
-    // Remove duplicates
-    return Array.from(new Map(albums.map(a => [`${a.title}-${a.artist}`, a])).values());
-  };
-
   const likedSongs = getLikedSongs();
   const likedArtists = getLikedArtists();
-  const likedAlbums = getLikedAlbums();
 
   return (
     <div className="space-y-6">
@@ -163,48 +148,6 @@ export function UserProfile() {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Liked Albums */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Disc3 className="w-5 h-5" />
-            Liked Albums ({likedAlbums.length})
-          </CardTitle>
-          <CardDescription>Your album collection</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {likedAlbums.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No liked albums yet. Explore the charts!</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {likedAlbums.map((album) => {
-                const albumId = `${album.title}-${album.artist}`;
-                return (
-                  <div key={albumId} className="p-4 rounded-lg border hover:border-purple-300 transition-colors">
-                    <img src={album.imageUrl} alt={album.title} className="w-full h-32 object-cover rounded-lg mb-3" />
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{album.title}</p>
-                        <p className="text-sm text-gray-600 truncate">{album.artist}</p>
-                        <p className="text-xs text-gray-500">{album.releaseDate} · {album.tracks} tracks</p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => toggleLike('albums', albumId)}
-                        className="text-red-500 hover:text-red-600 shrink-0"
-                      >
-                        <Heart className="w-4 h-4 fill-current" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           )}
         </CardContent>

@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { chartData } from "../data/chartData";
+import type { chartData, songDetails } from "../data/chartData";
 
 const API_BASE = "http://localhost:8080"; // Replace with real URL
 
@@ -26,3 +26,8 @@ export const fetchWorldwideCharts = async (): Promise<chartData> => {
     artists: artistsRes.data,
   };
 };
+
+export const fetchSongDetails = async (song_id: string) : Promise<songDetails> => {
+  const res = await axios.get(`${API_BASE}/songDetails/${song_id}`);
+  return res.data;
+}

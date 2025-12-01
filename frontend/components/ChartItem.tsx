@@ -3,8 +3,12 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useUser } from "../contexts/UserContext";
+import { songDetails } from "@/data/chartData";
+import { useEffect, useState } from "react";
+import { fetchSongDetails } from "@/services/chartService";
 
 export interface ChartItemData {
+  song_id: string;
   rank: number;
   title: string;
   artist: string;
@@ -21,6 +25,25 @@ export function ChartItem({ item }: ChartItemProps) {
   const { user, toggleLike, isLiked } = useUser();
   const songId = `${item.title}-${item.artist}`;
   const liked = isLiked('songs', songId);
+  const [details, setDetails] = useState<songDetails | null>(null);
+
+  function msToMinutes(millis: number) : string {
+    var minutes : number = Math.floor(millis / 60000);
+    var seconds : number  = ((millis % 60000) / 1000);
+    return minutes + ":" + (seconds < 10 ? '0' : '')  + seconds.toFixed(0);
+  }
+
+  useEffect(() => {
+    const loadDetails = async () => {
+      try {
+        const data = await fetchSongDetails(item.song_id);
+        setDetails(data); // Assuming you want to display duration
+      } catch (error) {
+        console.error("Failed to fetch song details:", error);
+      }
+    }
+    loadDetails();
+  }, []);
 
   return (
     <div className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors group">
@@ -50,12 +73,12 @@ export function ChartItem({ item }: ChartItemProps) {
         <p className="text-gray-600 truncate">{item.artist}</p>
       </div>
 
-      {/* <div className="hidden md:flex items-center gap-6 text-sm text-gray-600">
+      <div className="hidden md:flex items-center gap-6 text-sm text-gray-600">
         <div className="text-center">
-          <div>Peak</div>
-          <div>{item.peakPosition}</div>
+          <div>Duration:</div>
+          <div>{msToMinutes(details?.duration ?? 0)}</div>
         </div>
-      </div> */}
+      </div>
 
       <Button
         size="icon"
