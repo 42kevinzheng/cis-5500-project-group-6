@@ -57,10 +57,11 @@ const top50 = async function (req, res) {
         WITH ranked AS (
             SELECT
                 s.song_id,
-                MIN(s.song_name) AS song_name,
-                STRING_AGG(DISTINCT a.artist_name, ', ') AS artists,
+                MIN(s.song_name) AS title,
+                STRING_AGG(DISTINCT a.artist_name, ', ') AS artist,
+                COUNT(DISTINCT ce.country_code) AS countries_charted,
                 MIN(ce.chart_position) AS best_position,
-                MAX(ce.chart_date) AS most_recent_date,
+                MAX(ce.chart_date) AS latest_date,
                 MIN(s.album_cover_url) AS image_url,
                 ROW_NUMBER() OVER (
                     ORDER BY MIN(ce.chart_position) ASC,
@@ -71,11 +72,11 @@ const top50 = async function (req, res) {
             JOIN song s ON ce.song_id = s.song_id
             JOIN song_artist sa ON s.song_id = sa.song_id
             JOIN artist a ON sa.artist_id = a.artist_id
-            WHERE ce.country_code = $1
+            WHERE ce.country_code = '${countryCode}'
               AND ce.chart_date >= (
                     SELECT DATE_TRUNC('month', MAX(chart_date))
                     FROM chart_entry
-                    WHERE country_code = $1
+                    WHERE country_code = '${countryCode}'
                 )
             GROUP BY s.song_id
         )
@@ -669,6 +670,7 @@ const topArtistsByCountry = async function (req, res) {
             STRING_AGG(DISTINCT a.artist_genre, ', ') AS genre,
             COUNT(DISTINCT s.song_id) AS total_charting_songs,
             ROUND(AVG(ce.chart_position), 2) AS avg_chart_position,
+            COUNT(DISTINCT ce.country_code) AS countries_charted,
             MIN(ce.chart_position) AS best_position,
             MIN(a.artist_img) AS image_url
         FROM artist a

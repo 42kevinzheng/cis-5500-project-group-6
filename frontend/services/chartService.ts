@@ -1,13 +1,13 @@
 import axios from "axios";
-import type { Country, chartData } from "../data/chartData";
+import type { chartData } from "../data/chartData";
 
 const API_BASE = "http://localhost:8080"; // Replace with real URL
 
 // Fetch songs + artists together for a country
-export const fetchTop50 = async (country: Country = "worldwide"): Promise<chartData> => {
+export const fetchTop50 = async (countryCode: string): Promise<chartData> => {
   const [songsRes, artistsRes] = await Promise.all([
-    axios.get(`${API_BASE}/top50/${country}`),
-    axios.get(`${API_BASE}/topArtists`), // assuming you have this endpoint
+    axios.get(`${API_BASE}/top50/${countryCode}`),
+    axios.get(`${API_BASE}/topArtistsByCountry/${countryCode}`),
   ]);
   return {
     songs: songsRes.data,

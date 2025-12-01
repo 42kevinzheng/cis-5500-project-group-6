@@ -27,10 +27,10 @@ function AppContent() {
       try {
         let data: chartData;
         if (selectedCountry === "worldwide") {
-          console.log("fetching worldwide")
           data = await fetchWorldwideCharts();
         } else {
-          data = await fetchTop50(selectedCountry);
+          const countryCode = countries.find(c => c.value === selectedCountry)?.code;
+          data = await fetchTop50(countryCode!);
         }
         setCurrentData(data);
 
@@ -44,6 +44,7 @@ function AppContent() {
     loadData();
   }, [selectedCountry]);
 
+  // TODO: Put loading and error states in main body for responsiveness
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading charts...</div>;
   }
@@ -62,32 +63,30 @@ function AppContent() {
                 <Music className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-purple-900">MuCharts</h1>
+                <h1 className="text-purple-900">TerraTunes</h1>
                 <p className="text-sm text-gray-600">Your daily dose of trending music</p>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
-              {!showProfile && (
-                <>
-                  <Globe className="w-5 h-5 text-purple-600" />
-                  <Select value={selectedCountry} onValueChange={(value) => setSelectedCountry(value as Country)}>
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country.value} value={country.value}>
-                          <span className="flex items-center gap-2">
-                            <span>{country.flag}</span>
-                            <span>{country.label}</span>
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </>
-              )}
+              <>
+                <Globe className="w-5 h-5 text-purple-600" />
+                <Select value={selectedCountry} onValueChange={(value) => setSelectedCountry(value as Country)}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.map((country) => (
+                      <SelectItem key={country.value} value={country.value}>
+                        <span className="flex items-center gap-2">
+                          <span>{country.flag}</span>
+                          <span>{country.label}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
             </div>
           </div>
         </div>
@@ -118,7 +117,7 @@ function AppContent() {
           <TabsContent value="songs" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Top 10 Songs</CardTitle>
+                <CardTitle>Top {currentData.songs.length} Songs</CardTitle>
                 <CardDescription>The hottest tracks in {currentCountryInfo?.label}</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
@@ -148,7 +147,7 @@ function AppContent() {
       <footer className="bg-white border-t mt-16">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center text-gray-600">
-            <p>&copy; 2025 MuCharts. All rights reserved.</p>
+            <p>&copy; 2025 TerraTunes. All rights reserved.</p>
             <p className="text-sm mt-2">Chart data updated weekly</p>
           </div>
         </div>

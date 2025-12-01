@@ -2,19 +2,18 @@ import { ChartItemData } from "../components/ChartItem";
 import { ArtistData } from "../components/ArtistCard";
 //import { axios } from "axios";
 
-export type Country = "worldwide" | "us" | "spain" | "uk" | "italy" | "france" | "mexico" | "argentina" | "japan" | "south-korea";
+export type Country = "worldwide" | "us" | "spain" | "uk" | "italy" | "france" | "mexico" | "argentina" | "japan";
 
 export const countries = [
-  { value: "worldwide", label: "Worldwide", flag: "🌍" },
-  { value: "us", label: "United States", flag: "🇺🇸" },
-  { value: "spain", label: "Spain", flag: "🇪🇸" },
-  { value: "uk", label: "United Kingdom", flag: "🇬🇧" },
-  { value: "italy", label: "Italy", flag: "🇮🇹" },
-  { value: "france", label: "France", flag: "🇫🇷" },
-  { value: "mexico", label: "Mexico", flag: "🇲🇽" },
-  { value: "argentina", label: "Argentina", flag: "🇦🇷" },
-  { value: "japan", label: "Japan", flag: "🇯🇵" },
-  { value: "south-korea", label: "South Korea", flag: "🇰🇷" },
+  { value: "worldwide", label: "Worldwide", flag: "🌍" , code:""},
+  { value: "us", label: "United States", flag: "🇺🇸", code:"USA" },
+  { value: "spain", label: "Spain", flag: "🇪🇸", code:"ESP" },
+  { value: "uk", label: "United Kingdom", flag: "🇬🇧", code:"GBR" },
+  //{ value: "italy", label: "Italy", flag: "🇮🇹", code:"ITS" },
+  { value: "france", label: "France", flag: "🇫🇷", code:"FRA" },
+  { value: "mexico", label: "Mexico", flag: "🇲🇽", code:"MEX" },
+  { value: "argentina", label: "Argentina", flag: "🇦🇷", code:"ARG" },
+  { value: "japan", label: "Japan", flag: "🇯🇵", code:"JPN" },
 ] as const;
 
 const img1 = "https://images.unsplash.com/photo-1642552556378-549e3445315e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMGNvbmNlcnQlMjBwZXJmb3JtZXJ8ZW58MXx8fHwxNzYwNTQzNTczfDA&ixlib=rb-4.1.0&q=80&w=1080";
@@ -228,27 +227,5 @@ export const mockData: Record<Country, chartData> = {
       { name: "Fashion District", image_url: img5, total_charting_songs: "31", avg_chart_position: "5.8", best_position: "5", countries_charted: "31", genre: "Electro Pop" },
       { name: "Bay City Sound", image_url: img6, total_charting_songs: "28", avg_chart_position: "6.6", best_position: "6", countries_charted: "28", genre: "City Pop" },
     ]
-  },
-  "south-korea": {
-    songs: [
-      { rank: 1, title: "Seoul Lights", artist: "K-Wave", image_url: img3, countries_charted: 48, latest_date: "2025-11-27" },
-      { rank: 2, title: "Gangnam Dreams", artist: "Seoul Sound", image_url: img2, countries_charted: 45, latest_date: "2025-11-27" },
-      { rank: 3, title: "Busan Nights", artist: "Coastal Korea", image_url: img1, countries_charted: 42, latest_date: "2025-11-27" },
-      { rank: 4, title: "K-Pop Fever", artist: "Idol Group", image_url: img4, countries_charted: 39, latest_date: "2025-11-27" },
-      { rank: 5, title: "Hongdae Vibes", artist: "Indie Seoul", image_url: img5, countries_charted: 36, latest_date: "2025-11-27" },
-      { rank: 6, title: "Jeju Island", artist: "Paradise Sound", image_url: img6, countries_charted: 33, latest_date: "2025-11-27" },
-      { rank: 7, title: "Incheon Flow", artist: "Airport City", image_url: img3, countries_charted: 30, latest_date: "2025-11-27" },
-      { rank: 8, title: "Itaewon Nights", artist: "Global District", image_url: img2, countries_charted: 28, latest_date: "2025-11-27" },
-      { rank: 9, title: "Daegu Beat", artist: "Central Korea", image_url: img1, countries_charted: 26, latest_date: "2025-11-27" },
-      { rank: 10, title: "Han River", artist: "K-Wave", image_url: img4, countries_charted: 24, latest_date: "2025-11-27" },
-    ],
-    artists: [
-      { name: "K-Wave", image_url: img3, total_charting_songs: "51", avg_chart_position: "2.5", best_position: "1", countries_charted: "48", genre: "K-Pop" },
-      { name: "Seoul Sound", image_url: img2, total_charting_songs: "46", avg_chart_position: "3.1", best_position: "2", countries_charted: "45", genre: "K-Pop" },
-      { name: "Coastal Korea", image_url: img1, total_charting_songs: "41", avg_chart_position: "3.9", best_position: "3", countries_charted: "42", genre: "K-R&B" },
-      { name: "Idol Group", image_url: img4, total_charting_songs: "38", avg_chart_position: "4.7", best_position: "4", countries_charted: "39", genre: "K-Pop" },
-      { name: "Indie Seoul", image_url: img5, total_charting_songs: "33", avg_chart_position: "5.5", best_position: "5", countries_charted: "36", genre: "K-Indie" },
-      { name: "Paradise Sound", image_url: img6, total_charting_songs: "30", avg_chart_position: "6.3", best_position: "6", countries_charted: "33", genre: "K-Hip Hop" },
-    ]
-  },
+  }
 };
