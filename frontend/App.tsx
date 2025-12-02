@@ -8,6 +8,7 @@ import { ArtistCard } from "./components/ArtistCard";
 import { UserProvider } from "./contexts/UserContext";
 import { countries, Country, chartData } from "./data/chartData"; // Keep for types and countries list
 import { fetchTop50, fetchWorldwideCharts } from "./services/chartService"; // Import fetch functions (adjust path if needed)
+import { GenreChart } from "./components/GenreOvertime";
 
 function AppContent() {
   const appTitle = "TerraTunes";
@@ -119,7 +120,7 @@ function AppContent() {
         </div>
         
         <Tabs defaultValue="songs" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-md grid-cols-3">
             <TabsTrigger value="songs">
               <Trophy className="w-4 h-4 mr-2" />
               Songs
@@ -127,6 +128,10 @@ function AppContent() {
             <TabsTrigger value="artists">
               <Music className="w-4 h-4 mr-2" />
               Artists
+            </TabsTrigger>
+            <TabsTrigger value="genres">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Genres
             </TabsTrigger>
           </TabsList>
 
@@ -156,6 +161,13 @@ function AppContent() {
                 <ArtistCard key={artist.name} artist={artist} rank={index + 1} />
               ))}
             </div>
+          </TabsContent>
+          <TabsContent value="genres" className="space-y-4">
+            <div className="mb-4">
+              <h3>Top Genres</h3>
+              <p className="text-gray-600"></p>
+            </div>
+            <GenreChart genres={["hip hop", "pop", "rap", "trap latino", "urbano latino"]} />
           </TabsContent>
         </Tabs>
       </main>
