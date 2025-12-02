@@ -40,6 +40,13 @@ export interface songDetails {
   artists: string;
 }
 
+export interface genreEntry {
+    artist_genre: string;
+    month: string;
+    avg_position: number;
+    songs_charted: number;
+}
+
 
 export const mockData: Record<Country, chartData> = {
   worldwide: {

@@ -31,3 +31,8 @@ export const fetchSongDetails = async (song_id: string) : Promise<songDetails> =
   const res = await axios.get(`${API_BASE}/songDetails/${song_id}`);
   return res.data;
 }
+
+export const fetchGenreOvertime = async () : Promise<any> => {
+  const res = await axios.get(`${API_BASE}/genreOvertime/`);
+  return res.data;
+}
