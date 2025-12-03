@@ -352,17 +352,12 @@ const genreOverTime = async function (req, res) {
 
     connection.query(`
         WITH top_genres AS (
-            SELECT a.artist_genre, COUNT(DISTINCT s.song_id) as total_songs
-            FROM chart_entry ce
-            JOIN song s ON ce.song_id = s.song_id
-            JOIN song_artist sa ON s.song_id = sa.song_id
-            JOIN artist a ON sa.artist_id = a.artist_id
-            WHERE ce.chart_date >= $1 AND ce.chart_date <= $2
-            GROUP BY a.artist_genre
+            SELECT artist_genre, total_songs
+            FROM mv_top_genres_cache
             ORDER BY total_songs DESC
             LIMIT 5
         )
-        SELECT 
+        SELECT
             a.artist_genre,
             DATE_TRUNC('month', ce.chart_date) AS month,
             ROUND(AVG(ce.chart_position), 2) AS avg_position,
@@ -569,24 +564,22 @@ const newSongs = async function (req, res) {
 const explicitDistribution = async function (req, res) {
 
     connection.query(`
-        WITH latest_month AS (
-            SELECT DATE_TRUNC('month', MAX(chart_date)) AS start_month
-            FROM chart_entry
-        )
-        SELECT
-            c.country_name,
-            COUNT(*) FILTER (WHERE s.is_explicit = true) AS explicit_count,
-            COUNT(*) FILTER (WHERE s.is_explicit = false) AS clean_count,
-            ROUND(
-                COUNT(*) FILTER (WHERE s.is_explicit = true)::numeric 
-                / COUNT(*) * 100, 2
-            ) AS explicit_percentage
-        FROM chart_entry ce
-        JOIN latest_month lm ON ce.chart_date >= lm.start_month
-        JOIN song s ON ce.song_id = s.song_id
-        JOIN country c ON ce.country_code = c.country_code
-        GROUP BY c.country_name
-        ORDER BY explicit_percentage DESC;
+    SELECT
+        c.country_name,
+        COUNT(*) FILTER (WHERE s.is_explicit = true) AS explicit_count,
+        COUNT(*) FILTER (WHERE s.is_explicit = false) AS clean_count,
+        ROUND(
+                        COUNT(*) FILTER (WHERE s.is_explicit = true)::numeric
+                    / COUNT(*) * 100,
+                        2
+        ) AS explicit_percentage
+    FROM mv_monthly_chart_entries ce
+            JOIN song s
+                ON ce.song_id = s.song_id
+            JOIN country c
+                ON ce.country_code = c.country_code
+    GROUP BY c.country_name
+    ORDER BY explicit_percentage DESC;
     `, (err, data) => {
         if (err) {
             console.error('Database error:', err);
@@ -764,28 +757,25 @@ const topArtistsByCountry = async function (req, res) {
     const countryCode = req.params.code.toUpperCase();
 
     connection.query(`
-        WITH latest_date AS (
-            SELECT MAX(chart_date) AS date
-            FROM chart_entry
-            WHERE country_code = $1
+        WITH top_artists AS (
+            SELECT
+                a.artist_name AS name,
+                STRING_AGG(DISTINCT a.artist_genre, ', ') AS genre,
+                COUNT(DISTINCT s.song_id) AS total_charting_songs,
+                ROUND(AVG(mv.chart_position), 2) AS avg_chart_position,
+                COUNT(DISTINCT mv.country_code) AS countries_charted,
+                MIN(mv.chart_position) AS best_position,
+                MIN(a.artist_img) AS image_url
+            FROM artist a
+            JOIN song_artist sa ON a.artist_id = sa.artist_id
+            JOIN song s ON sa.song_id = s.song_id
+            JOIN mv_latest_charts mv ON mv.song_id = s.song_id
+            WHERE mv.country_code = $1
+            GROUP BY a.artist_id, a.artist_name
+            ORDER BY avg_chart_position ASC, total_charting_songs DESC
+            LIMIT 50
         )
-        SELECT
-            a.artist_name AS name,
-            STRING_AGG(DISTINCT a.artist_genre, ', ') AS genre,
-            COUNT(DISTINCT s.song_id) AS total_charting_songs,
-            ROUND(AVG(ce.chart_position), 2) AS avg_chart_position,
-            COUNT(DISTINCT ce.country_code) AS countries_charted,
-            MIN(ce.chart_position) AS best_position,
-            MIN(a.artist_img) AS image_url
-        FROM artist a
-        JOIN song_artist sa ON a.artist_id = sa.artist_id
-        JOIN song s ON sa.song_id = s.song_id
-        JOIN chart_entry ce ON s.song_id = ce.song_id
-        JOIN latest_date ld ON ce.chart_date = ld.date
-        WHERE ce.country_code = $1
-        GROUP BY a.artist_id, a.artist_name
-        ORDER BY avg_chart_position ASC, total_charting_songs DESC
-        LIMIT 50;
+        SELECT * FROM top_artists;
     `, [countryCode], (err, data) => {
         if (err) {
             console.error('Database error:', err);
