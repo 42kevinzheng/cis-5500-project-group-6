@@ -20,7 +20,7 @@ export interface ChartItemData {
 
 interface ChartItemProps {
   item: ChartItemData;
-  onSelect?: (songId: string) => void;   // 👈 new
+  onSelect?: (songId: string) => void; 
 }
 
 export function ChartItem({ item, onSelect }: ChartItemProps) {
