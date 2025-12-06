@@ -1,3 +1,4 @@
+// ChartItem.tsx
 import { Play, Heart } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -19,34 +20,40 @@ export interface ChartItemData {
 
 interface ChartItemProps {
   item: ChartItemData;
+  onSelect?: (songId: string) => void;   // 👈 new
 }
 
-export function ChartItem({ item }: ChartItemProps) {
+export function ChartItem({ item, onSelect }: ChartItemProps) {
   const { user, toggleLike, isLiked } = useUser();
-  const songId = `${item.title}-${item.artist}`;
-  const liked = isLiked('songs', songId);
+  const songIdKey = `${item.title}-${item.artist}`;
+  const liked = isLiked("songs", songIdKey);
   const [details, setDetails] = useState<songDetails | null>(null);
 
-  function msToMinutes(millis: number) : string {
-    var minutes : number = Math.floor(millis / 60000);
-    var seconds : number  = ((millis % 60000) / 1000);
-    return minutes + ":" + (seconds < 10 ? '0' : '')  + seconds.toFixed(0);
+  function msToMinutes(millis: number): string {
+    const minutes = Math.floor(millis / 60000);
+    const seconds = (millis % 60000) / 1000;
+    return minutes + ":" + (seconds < 10 ? "0" : "") + seconds.toFixed(0);
   }
 
   useEffect(() => {
     const loadDetails = async () => {
       try {
         const data = await fetchSongDetails(item.song_id);
-        setDetails(data); // Assuming you want to display duration
+        setDetails(data);
       } catch (error) {
         console.error("Failed to fetch song details:", error);
       }
-    }
+    };
     loadDetails();
-  }, []);
+  }, [item.song_id]);
 
   return (
-    <div className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors group">
+    <div
+      className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors group cursor-pointer"
+      onClick={() => onSelect?.(item.song_id)}   
+      role="button"
+      tabIndex={0}
+    >
       <div className="flex items-center gap-4 min-w-[80px]">
         <span className="text-2xl tabular-nums min-w-[40px] text-right">
           {item.rank}
@@ -83,18 +90,22 @@ export function ChartItem({ item }: ChartItemProps) {
       <Button
         size="icon"
         variant="ghost"
-        onClick={() => user ? toggleLike('songs', songId) : null}
-        className={`${liked ? 'text-red-500' : 'text-gray-400'} hover:text-red-500 transition-colors`}
-        title={user ? (liked ? 'Unlike' : 'Like') : 'Login to like'}
+        className={`${liked ? "text-red-500" : "text-gray-400"} hover:text-red-500 transition-colors`}
+        title={user ? (liked ? "Unlike" : "Like") : "Login to like"}
+        onClick={(e) => {
+          e.stopPropagation();                
+          if (user) toggleLike("songs", songIdKey);
+        }}
       >
-        <Heart className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} />
+        <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
       </Button>
 
       {item.rank === 1 && (
-        <Badge variant="default" className="ml-2">
-          #1 Hit
-        </Badge>
+      	<Badge variant="default" className="ml-2">
+      	#1 Hit
+      	</Badge>
       )}
+
     </div>
   );
 }

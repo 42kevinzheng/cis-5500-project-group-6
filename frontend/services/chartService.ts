@@ -36,3 +36,19 @@ export const fetchGenreOvertime = async () : Promise<any> => {
   const res = await axios.get(`${API_BASE}/genreOvertime/`);
   return res.data;
 }
+
+export interface ArtistDetails {
+  artist_id: string;
+  artist_name: string;
+  artist_genre: string;
+  artist_country: string;
+  artist_img: string;
+}
+
+export const fetchArtistDetails = async (
+  artistId: string
+): Promise<ArtistDetails> => {
+  const res = await axios.get(`${API_BASE}/artistDetails/${artistId}`);
+  return res.data;
+};
+
