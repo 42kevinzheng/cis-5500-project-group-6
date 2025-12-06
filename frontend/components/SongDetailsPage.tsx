@@ -189,7 +189,7 @@ export function SongDetailsPage({ songId, onBack }: SongDetailsPageProps) {
                 {details.song_id}
               </p>
               <p className="text-gray-700">
-                Spotify music-id. Useful for
+                Spotify song-id. Useful for
                 deep-linking, debugging, and advanced analytics.
               </p>
             </div>
