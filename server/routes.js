@@ -159,6 +159,7 @@ const topArtists = async function (req, res) {
 
     connection.query(`
             SELECT
+                a.artist_id AS artist_id,
                 a.artist_name as name,
                 STRING_AGG(DISTINCT a.artist_genre, ', ') AS genre,
                 COUNT(DISTINCT s.song_id) AS total_charting_songs,
@@ -759,6 +760,7 @@ const topArtistsByCountry = async function (req, res) {
     connection.query(`
         WITH top_artists AS (
             SELECT
+                a.artist_id AS artist_id,
                 a.artist_name AS name,
                 STRING_AGG(DISTINCT a.artist_genre, ', ') AS genre,
                 COUNT(DISTINCT s.song_id) AS total_charting_songs,
