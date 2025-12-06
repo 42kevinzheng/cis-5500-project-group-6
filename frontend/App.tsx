@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Music, TrendingUp, Trophy, Globe } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
@@ -11,6 +11,7 @@ import { fetchTop50, fetchWorldwideCharts } from "./services/chartService";
 import { GenreChart } from "./components/GenreOvertime";
 import { SongDetailsPage } from "./components/SongDetailsPage";
 import { ArtistDetailsPage } from "./components/ArtistDetailsPage";
+import { Input } from "./components/ui/input";
 
 function AppContent() {
   const appTitle = "TerraTunes";
@@ -21,9 +22,10 @@ function AppContent() {
   const [error, setError] = useState<string | null>(null);
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null);
-
-  // which tab is active
   const [activeTab, setActiveTab] = useState<"songs" | "artists" | "genres">("songs");
+  const [songQuery, setSongQuery] = useState<string>("");
+  const [artistQuery, setArtistQuery] = useState<string>("");
+  const [artistGenreFilter, setArtistGenreFilter] = useState<string>("");
 
   const currentCountryInfo = countries.find((c) => c.value === selectedCountry);
 
@@ -31,10 +33,11 @@ function AppContent() {
     const loadData = async () => {
       setLoading(true);
       setError(null);
-
-      // when you change country, close any open details page
       setSelectedSongId(null);
       setSelectedArtistId(null);
+      setSongQuery("");
+      setArtistQuery("");
+      setArtistGenreFilter("");
 
       try {
         let data: chartData;
@@ -57,6 +60,53 @@ function AppContent() {
 
     loadData();
   }, [selectedCountry]);
+
+  const filteredSongs = useMemo(() => {
+    if (!currentData) return [];
+    const q = songQuery.trim().toLowerCase();
+    if (!q) return currentData.songs;
+
+    return currentData.songs.filter((song: any) => {
+      return (
+        song.title.toLowerCase().includes(q) ||
+        song.artist.toLowerCase().includes(q)
+      );
+    });
+  }, [currentData, songQuery]);
+
+  const uniqueArtistGenres = useMemo(() => {
+    if (!currentData) return [];
+    const set = new Set<string>();
+    (currentData.artists as any[]).forEach((artist) => {
+      if (artist.genre) {
+        artist.genre
+          .split(",")
+          .map((g: string) => g.trim())
+          .filter(Boolean)
+          .forEach((g: string) => set.add(g));
+      }
+    });
+    return Array.from(set).sort();
+  }, [currentData]);
+
+  const filteredArtists = useMemo(() => {
+    if (!currentData) return [];
+    const q = artistQuery.trim().toLowerCase();
+
+    return (currentData.artists as any[]).filter((artist) => {
+      if (q && !artist.name.toLowerCase().includes(q)) return false;
+      if (artistGenreFilter) {
+        if (
+          !artist.genre
+            ?.toLowerCase()
+            .includes(artistGenreFilter.toLowerCase())
+        ) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [currentData, artistQuery, artistGenreFilter]);
 
   if (!currentData && loading) {
     return (
@@ -137,7 +187,6 @@ function AppContent() {
           </div>
         )}
 
-        {/* HEADER FOR CHART SECTION (only when not in detail view) */}
         {!selectedSongId && !selectedArtistId && (
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-2">
@@ -155,7 +204,7 @@ function AppContent() {
             songId={selectedSongId}
             onBack={() => {
               setSelectedSongId(null);
-              setActiveTab("songs"); // ensure we go back to Songs tab
+              setActiveTab("songs");
             }}
           />
         )}
@@ -166,16 +215,17 @@ function AppContent() {
             artistId={selectedArtistId}
             onBack={() => {
               setSelectedArtistId(null);
-              setActiveTab("artists"); // go back to Artists tab
+              setActiveTab("artists"); 
             }}
           />
         )}
 
-        {/* MAIN TABS – only show when NO detail page is open */}
         {!selectedSongId && !selectedArtistId && currentData && (
           <Tabs
-            value={activeTab}                          // use controlled tab state
-            onValueChange={(v) => setActiveTab(v as "songs" | "artists" | "genres")}
+            value={activeTab}
+            onValueChange={(v) =>
+              setActiveTab(v as "songs" | "artists" | "genres")
+            }
             className="space-y-6"
           >
             <TabsList className="grid w-full max-w-md grid-cols-3">
@@ -193,55 +243,116 @@ function AppContent() {
               </TabsTrigger>
             </TabsList>
 
-            {/* SONGS TAB */}
             <TabsContent value="songs" className="space-y-4">
+              <div className="mb-2 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+                <p className="text-sm text-gray-600">
+                  Filter songs by title or artist.
+                </p>
+                <div className="w-full md:w-72">
+                  <Input
+                    value={songQuery}
+                    onChange={(e) => setSongQuery(e.target.value)}
+                    placeholder="Search songs or artists..."
+                  />
+                </div>
+              </div>
+
               <Card>
                 <CardHeader>
-                  <CardTitle>Top {currentData.songs.length} Songs</CardTitle>
+                  <CardTitle>
+                    Top {filteredSongs.length} Songs
+                    {songQuery && (
+                      <span className="text-sm font-normal text-gray-500 ml-2">
+                        (from {currentData.songs.length})
+                      </span>
+                    )}
+                  </CardTitle>
                   <CardDescription>
                     The hottest tracks in {currentCountryInfo?.label}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="divide-y">
-                    {currentData.songs.map((song) => (
+                    {filteredSongs.map((song: any) => (
                       <button
                         key={song.song_id}
                         className="w-full text-left"
                         onClick={() => {
                           setSelectedSongId(song.song_id);
-                          setActiveTab("songs"); // remember that we came from Songs
+                          setActiveTab("songs");
                         }}
                       >
                         <ChartItem item={song} />
                       </button>
                     ))}
+                    {filteredSongs.length === 0 && (
+                      <div className="py-8 text-center text-sm text-gray-500">
+                        No songs match your filter.
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {/* ARTISTS TAB */}
             <TabsContent value="artists" className="space-y-4">
-              <div className="mb-4">
-                <h3>Top Artists This Week</h3>
-                <p className="text-gray-600">
-                  Most streamed artists in {currentCountryInfo?.label}
-                </p>
+              <div className="flex flex-col md:flex-row gap-3 md:items-end md:justify-between">
+                <div className="space-y-1">
+                  <h3>Top Artists This Week</h3>
+                  <p className="text-gray-600">
+                    Most streamed artists in {currentCountryInfo?.label}
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                  <div className="flex-1 min-w-[180px]">
+                    <Input
+                      value={artistQuery}
+                      onChange={(e) => setArtistQuery(e.target.value)}
+                      placeholder="Search artist name..."
+                    />
+                  </div>
+                  <div className="w-full sm:w-48">
+                    <Select
+                      value={artistGenreFilter || "all"}
+                      onValueChange={(v) =>
+                        setArtistGenreFilter(v === "all" ? "" : v)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filter by genre" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All genres</SelectItem>
+                        {uniqueArtistGenres.map((g) => (
+                          <SelectItem key={g} value={g}>
+                            {g}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {currentData.artists.map((artist: any, index: number) => (
+                {filteredArtists.map((artist: any, index: number) => (
                   <ArtistCard
                     key={artist.name}
                     artist={artist}
                     rank={index + 1}
                     onSelect={(artistId) => {
                       setSelectedArtistId(artistId);
-                      setActiveTab("artists"); // remember we came from Artists
+                      setActiveTab("artists");
                     }}
                   />
                 ))}
               </div>
+
+              {filteredArtists.length === 0 && (
+                <div className="py-8 text-center text-sm text-gray-500">
+                  No artists match your filters.
+                </div>
+              )}
             </TabsContent>
 
             {/* GENRES TAB */}
@@ -264,7 +375,6 @@ function AppContent() {
         )}
       </main>
 
-      {/* FOOTER */}
       <footer className="bg-white border-t mt-16">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center text-gray-600">
