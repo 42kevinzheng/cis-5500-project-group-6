@@ -26,7 +26,6 @@ export function ArtistDetailsPage({ artistId, onBack }: ArtistDetailsPageProps) 
       try {
         const data = await fetchArtistDetails(artistId);
 
-        // If backend returns { message: "Artist not found." }
         if ((data as any).message) {
           setError("Artist not found.");
           setArtist(null);
@@ -148,9 +147,8 @@ export function ArtistDetailsPage({ artistId, onBack }: ArtistDetailsPageProps) 
                   TerraTunes Insight
                 </p>
                 <p className="text-sm text-gray-700">
-                  This profile is powered by your TerraTunes charts backend. Use
-                  this page as a base to add more stats later (top songs,
-                  countries, etc.).
+                  This profile is powered by TerraTunes. Can be used to add more info (top songs,
+                  countries, etc...).
                 </p>
               </div>
             </div>
